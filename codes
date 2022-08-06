@@ -1,0 +1,64 @@
+# 1. Basic QC analysis is performed in EPi2me labs notebook "Basic QC tutorial"
+
+
+# 2. concatenate fastq.gz of each sample (applied for high accuracy transposase kit reads, fast bc had only one file for all but one dir)
+#path to the file containing fastq.gz files
+#cat lines = number of samples 
+for d in /mnt/c/Users/{path}/barcode0*/; do
+(
+    cd "$d"
+    cat *.fastq.gz > "$d.fastq.gz"
+    cat *.fastq.gz > "$d.fastq.gz"
+    cat *.fastq.gz > "$d.fastq.gz"
+    cat *.fastq.gz > "$d.fastq.gz"
+    cat *.fastq.gz > "$d.fastq.gz"
+)
+done
+
+# 3. Reads' alignment using pomoxis, mini align command 
+#using a loop in ubuntu to iterate over the files automatically 
+#does not reconize FILES=(/mnt/c/Users/Nada/Desktop/data/Tu_patients/all_barcoded) and path+$i.bam, so just leave it $i.bam
+# .t : threads, ex 10X faster
+
+make install
+. ./venv/bin/activate
+for i in {path to concatenated fastq.gz files; one files per sample}/*.fastq.gz
+do
+mini_align -t10 -r {path to reference genomes}/grch38.fasta -i $i -p $i > $i.bam 
+done
+
+#4. SNP calling with CLair3/Conda
+#create environment
+#fast bae-calling SQK-RBK004
+conda create -n clair3 -c bioconda clair3 python=3.6.10 -y
+conda activate clair3
+
+#It is better to rename all the bam files and delete the prefix fastq.gz to avoid any extension confusion (ex leave only patient1.bam and patient1.bam.bai)
+for i in {path to bam files}/*.bam
+do
+ run_clair3.sh \
+--bam_fn=$i \
+--ref_fn={path to human reference genome}/grch38.fasta \
+--threads=8 \
+--platform=ont \
+--model_path=/mnt/c/Users/nada/epi2melabs-data/models/r941_prom_hac_g360+g422 \
+--output=./cvf/$i.vcf \
+--sample_name=TRPM4 \
+--min_coverage=25 \
+--ctg_name=chr19
+done
+
+# check the output file and moove it to the needed directory (displayed in the shell)
+mv *.vcf /mnt/c/Users/{xxx}/Desktop
+
+
+
+#variant visualization and effect prediction using VEP database
+#filters : symbol is TRPM4, effect is moderate (no output with effect is HIGH)
+
+#Phasing
+#Install
+conda install whatshap nomkl
+
+#basic command
+cd /mnt/c/Users/Nada/Desktop/data/Tu_patients/LSK109
